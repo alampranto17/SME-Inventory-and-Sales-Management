@@ -19,21 +19,20 @@ export class CreateUserDto {
   })
   fullName: string;
 
-  @IsOptional() // super_admin এর জন্য required, বাকিদের auto generate
   @Matches(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, {
     message: 'Invalid email format',
   })
-  email?: string;
+  email: string;
 
   @IsOptional()
   @Matches(/^01[3-9]\d{8}$/, {
     message: 'Invalid phone — Bangladesh format required: 01XXXXXXXXX',
   })
   phone?: string;
-
+  @IsOptional()
   @IsEnum(UserRole, { message: 'Invalid role' })
   @IsNotEmpty({ message: 'Role is required' })
-  role: UserRole;
+  role?: UserRole;
 
   @IsOptional()
   @IsString()
@@ -50,11 +49,6 @@ export class CreateUserDto {
     },
   )
   password: string;
-
-  @IsBoolean()
-  @IsNotEmpty()
-  isActive: boolean;
-
   @IsOptional()
   @IsString()
   secretKey?: string;

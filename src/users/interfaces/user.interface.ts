@@ -1,10 +1,11 @@
 import { UserRole } from '../enums/userRole.enum';
 
-export interface user {
-  fullname: string;
+export interface User {
+  fullName: string;
   email: string;
   phone?: string;
   tenantSlug?: string;
-  role: UserRole;
+  role?: UserRole;
   isActive: boolean;
+  secretKey?: string;
 }
