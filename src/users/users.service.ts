@@ -2,11 +2,13 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { TenantsService } from 'src/tenants/tenants.service';
 import { CreateUserDto } from './dto/createUser.dto';
 import { User } from './interfaces/user.interface';
 import { UserRole } from './enums/userRole.enum';
+import { use } from 'passport';
 
 @Injectable()
 export class UsersService {
@@ -38,6 +40,7 @@ export class UsersService {
       email: dto.email,
       fullName: dto.fullName,
       role: UserRole.SUPER_ADMIN,
+      password: dto.password,
       isActive: true,
     };
 
@@ -46,7 +49,11 @@ export class UsersService {
     return user;
   }
 
-  findAll() {
+  findAll(): User[] {
     return this.users;
+  }
+  findOne(email: string) {
+    const user = this.users.find((t) => t.email === email);
+    return user;
   }
 }

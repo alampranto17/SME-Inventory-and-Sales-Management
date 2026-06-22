@@ -5,6 +5,7 @@ export interface User {
   email: string;
   phone?: string;
   tenantSlug?: string;
+  password: string;
   role?: UserRole;
   isActive: boolean;
   secretKey?: string;
