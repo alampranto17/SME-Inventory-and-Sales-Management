@@ -3,6 +3,4 @@ export enum UserRole {
   BUSINESS_ADMIN = 'business_admin',
   WAREHOUSE_MANAGER = 'warehouse_manager',
   SALES_STAFF = 'sales_staff',
-  ACCOUNTANT = 'accountant',
-  B2C_CUSTOMER = 'b2c_customer',
 }

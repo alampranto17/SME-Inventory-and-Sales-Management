@@ -2,8 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { UserRole } from 'src/users/enums/userRole.enum';
+import type { Request } from 'express';
+import { JwtPayload } from '../auth.service';
 
+// Same as JwtStrategy but checks the REFRESH token (different secret).
+// Send it like: Authorization: Bearer <refreshToken>
 @Injectable()
 export class JWTRefreshStrategry extends PassportStrategy(
   Strategy,
@@ -14,17 +17,17 @@ export class JWTRefreshStrategry extends PassportStrategy(
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
       secretOrKey: configService.get<string>('JWT_REFRESH_SECRET') as string,
+      passReqToCallback: true, // so we can read the raw token below
     });
   }
 
-  async validate(payload: any) {
-    const tenantSlug =
-      payload.role === UserRole.SUPER_ADMIN ? null : payload.tenantSlug;
+  validate(req: Request, payload: JwtPayload) {
+    // we need the raw token to compare it with the one saved in the DB
+    const refreshToken = ExtractJwt.fromAuthHeaderAsBearerToken()(req);
 
     return {
-      email: payload.email,
-      role: payload.role,
-      tenantSlug: tenantSlug,
+      id: payload.sub,
+      refreshToken,
     };
   }
 }

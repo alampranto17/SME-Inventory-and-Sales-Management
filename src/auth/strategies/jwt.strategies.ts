@@ -4,7 +4,8 @@ import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
-import { UserRole } from 'src/users/enums/userRole.enum';
+import { AuthUser } from 'src/common/interfaces/auth-user.interface';
+import { JwtPayload } from '../auth.service';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
@@ -16,15 +17,15 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     });
   }
 
-  async validate(payload: any) {
-    // if/else আলাদা করো — object এর বাইরে
-    const tenantSlug =
-      payload.role === UserRole.SUPER_ADMIN ? null : payload.tenantSlug;
-
+  // whatever we return here becomes `request.user`
+  // and you get it with @CurrentUser() in controllers
+  validate(payload: JwtPayload): AuthUser {
     return {
+      id: payload.sub,
       email: payload.email,
       role: payload.role,
-      tenantSlug: tenantSlug,
+      tenantId: payload.tenantId,
+      tenantSlug: payload.tenantSlug,
     };
   }
 }

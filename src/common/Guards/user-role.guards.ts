@@ -2,11 +2,12 @@ import {
   CanActivate,
   ExecutionContext,
   ForbiddenException,
+  Injectable,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from '../decorators/user-roles.decorator';
 import { UserRole } from 'src/users/enums/userRole.enum';
-
+@Injectable()
 export class RolesGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
@@ -29,6 +30,12 @@ export class RolesGuard implements CanActivate {
 
     const hasRole = requiredRoles.includes(user.role);
 
-    return hasRole;
+    if (!hasRole) {
+      throw new ForbiddenException(
+        `Your role "${user.role}" can not access this route`,
+      );
+    }
+
+    return true;
   }
 }

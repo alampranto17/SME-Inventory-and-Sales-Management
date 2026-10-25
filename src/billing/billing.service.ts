@@ -21,7 +21,7 @@ export class BillingService {
     };
   }
 
-  changePlan(tenant: any, dto: ChangePlanDto) {
+  async changePlan(tenant: any, dto: ChangePlanDto) {
     if (!dto.plan) {
       throw new BadRequestException('plan  is required');
     }
@@ -30,7 +30,7 @@ export class BillingService {
       throw new BadRequestException(`Already on "${dto.plan}" plan`);
     }
 
-    const update = this.tenantsService.update(tenant.slug, {
+    const update = await this.tenantsService.update(tenant.slug, {
       ...(dto.plan && { plan: dto.plan }),
     });
 
@@ -40,16 +40,16 @@ export class BillingService {
     };
   }
 
-  changeStatus(tenant: any, dto: ChangeStatusDto) {
+  async changeStatus(tenant: any, dto: ChangeStatusDto) {
     // 1. checking dto is present or not
     if (!dto.status) {
-      throw new BadRequestException('plan  is required');
+      throw new BadRequestException('status is required');
     }
     //2.check dto plan jodi thake tahole dto.status and tenants match korche ki na.
     if (dto.status && dto.status === tenant.status) {
       throw new BadRequestException(`Already on "${dto.status}" status`);
     }
-    const update = this.tenantsService.update(tenant.slug, {
+    const update = await this.tenantsService.update(tenant.slug, {
       ...(dto.status && { status: dto.status }),
     });
 

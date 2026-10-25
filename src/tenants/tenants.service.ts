@@ -1,54 +1,168 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { DataSource, In, Repository } from 'typeorm';
+import * as bcrypt from 'bcryptjs';
+import { randomBytes } from 'crypto';
 import { CreateTenantsDto } from './dto/createTenants.dto';
+import { CreateShopDto } from './dto/createShop.dto';
 import { UpdateTenantDto } from './dto/updateTenants.dto';
 import { TenantStatus } from './enums/tenantStatus.enum';
+import { TenantPlan } from './enums/tenantPlan.enum';
+import { Tenant } from './entities/tenant.entity';
+import { User } from 'src/users/entities/user.entity';
+import { UserRole } from 'src/users/enums/userRole.enum';
+import { Warehouse } from 'src/inventory/entities/warehouse.entity';
+import { SubscriptionInvoice } from 'src/billing/entities/subscriptionInvoice.entity';
+import {
+  dueDateOf,
+  monthlyPrice,
+  toMonth,
+} from 'src/billing/billing.helpers';
 
 @Injectable()
 export class TenantsService {
-  private tenants = [
-    {
-      id: 1,
-      name: 'Default Company',
-      slug: 'default-company',
-      plan: 'GROWTH',
-      status: 'ACTIVE',
-    },
-    {
-      id: 2,
-      name: 'Admin Tenant',
-      slug: 'admin-tenant',
-      plan: 'STARTER',
-      status: 'ACTIVE',
-    },
-  ];
-  createTenants(dto: CreateTenantsDto): object {
-    // 0. if slug is exists then you can create tenants;
-    const exists = this.tenants.find((t) => t.slug === dto.slug);
+  // Before: private tenants = [ ... ]  (in-memory array)
+  // Now:    the data lives in the PostgreSQL "tenants" table
+  constructor(
+    @InjectRepository(Tenant)
+    private readonly tenantRepo: Repository<Tenant>,
+    private readonly dataSource: DataSource,
+  ) {}
+
+  // ─────────────────────────────────────────────
+  // SUPER ADMIN: create a new shop + its owner in ONE step
+  // ─────────────────────────────────────────────
+  async createShopWithOwner(dto: CreateShopDto) {
+    // 1. owner email must be new
+    const emailTaken = await this.dataSource
+      .getRepository(User)
+      .exists({ where: { email: dto.ownerEmail } });
+
+    if (emailTaken) {
+      throw new ConflictException(`Email "${dto.ownerEmail}" already exists`);
+    }
+
+    // bcrypt "salt rounds" = 12 (same as users.service.ts)
+    const passwordHash = await bcrypt.hash(dto.ownerPassword, 12);
+
+    // 2. save shop + warehouse + owner + first bill together (transaction).
+    //    If one save fails, NOTHING is saved.
+    const result = await this.dataSource.transaction(async (manager) => {
+      const tenant = await manager.save(
+        manager.create(Tenant, {
+          name: dto.shopName,
+          slug: this.makeSlug(dto.shopName),
+          plan: dto.plan ?? TenantPlan.STARTER,
+          status: TenantStatus.ACTIVE,
+        }),
+      );
+
+      // every shop starts with one warehouse (used by the POS)
+      await manager.save(
+        manager.create(Warehouse, {
+          tenantId: tenant.id,
+          name: 'Main Warehouse',
+          isDefault: true,
+        }),
+      );
+
+      const owner = await manager.save(
+        manager.create(User, {
+          tenantId: tenant.id,
+          fullName: dto.ownerFullName,
+          email: dto.ownerEmail,
+          phone: dto.ownerPhone ?? null,
+          passwordHash,
+          role: UserRole.BUSINESS_ADMIN,
+        }),
+      );
+
+      // the first monthly software bill (for this month)
+      const month = toMonth(new Date());
+      await manager.save(
+        manager.create(SubscriptionInvoice, {
+          tenantId: tenant.id,
+          month,
+          plan: tenant.plan,
+          amount: monthlyPrice(tenant.plan).toFixed(2),
+          dueDate: dueDateOf(month),
+        }),
+      );
+
+      return { tenant, owner };
+    });
+
+    return {
+      message: 'Shop and owner created',
+      data: {
+        tenant: result.tenant,
+        owner: {
+          id: result.owner.id,
+          fullName: result.owner.fullName,
+          email: result.owner.email,
+          role: result.owner.role,
+        },
+      },
+    };
+  }
+
+  // list of shops + who owns each one + how many people work there
+  async findAllWithOwners() {
+    const tenants = await this.findAll();
+    if (tenants.length === 0) return [];
+
+    const users = await this.dataSource.getRepository(User).find({
+      where: { tenantId: In(tenants.map((t) => t.id)) },
+    });
+
+    return tenants.map((tenant) => {
+      const shopUsers = users.filter((u) => u.tenantId === tenant.id);
+      const owner = shopUsers.find((u) => u.role === UserRole.BUSINESS_ADMIN);
+
+      return {
+        ...tenant,
+        owner: owner ? { fullName: owner.fullName, email: owner.email } : null,
+        userCount: shopUsers.length,
+      };
+    });
+  }
+
+  // "Rahim Traders" -> "rahim-traders-a1b2"
+  private makeSlug(name: string) {
+    const base = name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+    return `${base}-${randomBytes(2).toString('hex')}`;
+  }
+
+  async createTenants(dto: CreateTenantsDto) {
+    // 0. slug must be unique
+    const exists = await this.tenantRepo.findOne({ where: { slug: dto.slug } });
 
     if (exists) {
       throw new BadRequestException('Slug must be unique');
     }
 
-    // 1. modify dto adding id;
-    const id = this.tenants.length + 1;
-    const tenant = {
-      id: id,
+    // 1. create + save (id is generated by the database)
+    const tenant = this.tenantRepo.create({
       ...dto,
       status: TenantStatus.ACTIVE,
-    };
+    });
 
-    // adding temporary in-memory
-
-    this.tenants.push(tenant);
-
-    return tenant;
+    return this.tenantRepo.save(tenant);
   }
 
   findAll() {
-    return this.tenants;
+    return this.tenantRepo.find({ order: { createdAt: 'DESC' } });
   }
-  findOne(slug: string) {
-    const tenant = this.tenants.find((t) => t.slug === slug);
+
+  async findOne(slug: string) {
+    const tenant = await this.tenantRepo.findOne({ where: { slug } });
 
     if (!tenant) {
       throw new BadRequestException(`Tenant "${slug}" not found`);
@@ -57,49 +171,40 @@ export class TenantsService {
     return tenant;
   }
 
-  update(slug: string, dto: UpdateTenantDto) {
-    const index = this.tenants.findIndex((t) => t.slug === slug);
+  async findById(id: string) {
+    const tenant = await this.tenantRepo.findOne({ where: { id } });
 
-    console.log('index : ', index);
-
-    if (index === -1) {
-      throw new BadRequestException(`Tenant "${slug}" not found`);
+    if (!tenant) {
+      throw new BadRequestException('Tenant not found');
     }
 
-    this.tenants[index] = {
-      ...this.tenants[index],
-      ...dto,
-    };
-
-    return this.tenants[index];
+    return tenant;
   }
 
-  suspend(slug: string) {
-    const index = this.tenants.findIndex((t) => t.slug === slug);
-    if (index === -1) {
-      throw new BadRequestException(`Tenants "${slug} not found"`);
-    }
+  async update(slug: string, dto: UpdateTenantDto) {
+    const tenant = await this.findOne(slug);
 
-    this.tenants[index] = {
-      ...this.tenants[index],
-      status: TenantStatus.SUSPENDED,
-    };
+    // copy new values on top of old values
+    Object.assign(tenant, dto);
 
-    return this.tenants[index];
+    return this.tenantRepo.save(tenant);
   }
 
-  delete(slug: string) {
-    const index = this.tenants.findIndex((t) => t.slug === slug);
-    if (index === -1) {
-      throw new BadRequestException(`Tenants "${slug}" not found`);
-    }
-    const deletedTenant = this.tenants.filter((t) => t.slug === slug);
+  async suspend(slug: string) {
+    const tenant = await this.findOne(slug);
+    tenant.status = TenantStatus.SUSPENDED;
+    return this.tenantRepo.save(tenant);
+  }
 
-    this.tenants = this.tenants.filter((t) => t.slug !== slug);
+  async delete(slug: string) {
+    const tenant = await this.findOne(slug);
+
+    // users, products ... of this tenant are deleted too (onDelete: CASCADE)
+    await this.tenantRepo.remove(tenant);
 
     return {
       message: 'Deleted successfully',
-      data: deletedTenant,
+      data: tenant,
     };
   }
 }

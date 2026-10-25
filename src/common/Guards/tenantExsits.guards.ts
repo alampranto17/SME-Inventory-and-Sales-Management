@@ -2,25 +2,30 @@ import { TenantsService } from './../../tenants/tenants.service';
 import {
   CanActivate,
   ExecutionContext,
+  ForbiddenException,
   Injectable,
-  NotFoundException,
 } from '@nestjs/common';
+import { UserRole } from 'src/users/enums/userRole.enum';
+
 @Injectable()
 export class TenantExsitsGuard implements CanActivate {
   constructor(private readonly tenantService: TenantsService) {}
-  canActivate(context: ExecutionContext): boolean {
+
+  // async because we now read the tenant from the database
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
     const slug = request.params.slug;
+    const user = request.user;
 
-    // console.log('slug : ', slug);
+    // findOne throws an error if tenant is not found
+    const tenant = await this.tenantService.findOne(slug);
 
-    const tenant = this.tenantService.findOne(slug);
-
-    // console.log('guard : ', tenant);
-
-    if (!tenant) {
-      throw new NotFoundException(`Tenant "${slug}" not found`);
+    // a business admin can only see HIS OWN company.
+    // super admin can see every company.
+    if (user.role !== UserRole.SUPER_ADMIN && user.tenantId !== tenant.id) {
+      throw new ForbiddenException('You can only access your own company');
     }
+
     request.tenant = tenant;
 
     return true;
