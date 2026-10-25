@@ -1,98 +1,132 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# SME Inventory & Sales Management
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
-
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
-
-## Description
-
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Project setup
-
-```bash
-$ npm install
+```
+SME/
+├── backend/    NestJS + PostgreSQL (TypeORM) API  -> http://localhost:3000/api/v1
+├── frontend/   Next.js + Tailwind + Pusher         -> http://localhost:3001
+└── docs/
+    ├── PROJECT_GUIDE.md  full blueprint + learning path + how Pusher works (start here to LEARN)
+    └── API_MAP.md        every endpoint → backend file + frontend file (start here to CHANGE code)
 ```
 
-## Compile and run the project
+## 1. Run the backend
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+cd backend
+npm install
 ```
 
-## Run tests
+1. Start PostgreSQL and create a database called `sme_db`.
+2. Open `backend/.env` and set `DB_USER` / `DB_PASSWORD` to your postgres login.
+   `DB_SYNC=true` makes TypeORM create all tables automatically (development only).
+3. Add demo data (company, 3 users, products, orders):
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npm run seed
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+4. Start the API:
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+npm run start:dev
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+Swagger docs: http://localhost:3000/api/docs
 
-## Resources
+Demo logins (password `Admin@1234`):
 
-Check out a few resources that may come in handy when working with NestJS:
+| Role    | Email                    | Can do                                  |
+|---------|--------------------------|-----------------------------------------|
+| Super admin | admin@sme.app        | create shops + owners, monthly billing  |
+| Owner   | owner@rahimtraders.com   | everything + team + delete products     |
+| Manager | manager@rahimtraders.com | products, stock, suppliers, POs, reports|
+| Staff   | staff@rahimtraders.com   | sell (POS), customers, payments         |
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+## 2. Run the frontend
 
-## Support
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+Open http://localhost:3001
 
-## Stay in touch
+## How a new shop gets the software
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+Everyone (super admin, owners, managers, staff) logs in at the same `/login` page.
+There is no public sign-up.
 
-## License
+1. **Super admin** → **Shops** → **+ Add shop**: enters the shop name, plan, and the owner's name/email/password.
+   This creates the shop, its "Main Warehouse", the owner account and the first monthly bill.
+2. **Owner** logs in → **Team** → adds managers and staff.
+3. **Every month** (1st, 01:00) each active shop gets a bill for its plan price (`billing/constants/billing.constants.ts`).
+   Bills are due on the 10th; after that they show as **Overdue**.
+4. The owner pays by bKash / bank; the **super admin** opens **Billing** → **Mark paid**.
+   The owner sees his bills on **My Subscription**.
+5. A shop that doesn't pay can be **suspended** on the Shops page → nobody in that shop can log in.
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+## 3. Turn on realtime (Pusher)
+
+The app works without Pusher, it's just not live. To turn it on:
+
+1. Create a free account at https://dashboard.pusher.com → **Channels** → create an app (cluster `ap2` = Mumbai).
+2. Copy the keys from **App Keys**:
+   - `backend/.env` → `PUSHER_APP_ID`, `PUSHER_KEY`, `PUSHER_SECRET`, `PUSHER_CLUSTER`
+   - `frontend/.env.local` → `NEXT_PUBLIC_PUSHER_KEY`, `NEXT_PUBLIC_PUSHER_CLUSTER`
+     (**never** put the secret in the frontend!)
+3. Restart both. The top bar shows a green **Live** dot.
+4. Test it: open the dashboard in one tab and the POS in another, then make a sale.
+
+### How the realtime flow works
+
+```
+ Staff makes a sale (POS)
+        │  POST /orders
+        ▼
+ backend/src/orders/orders.service.ts
+   pusherService.sendToTenant(tenantId, "order-created", {...})
+        │
+        ▼
+ Pusher cloud  ──►  every browser subscribed to "private-tenant-{tenantId}"
+        │
+        ▼
+ frontend: usePusherEvent(tenantChannel(user), "order-created", (data) => reload())
+```
+
+| Read this file                                   | To learn                                 |
+|--------------------------------------------------|------------------------------------------|
+| `backend/src/pusher/pusher.service.ts`           | sending events, channel names            |
+| `backend/src/pusher/pusher.controller.ts`        | who may join a private channel           |
+| `frontend/src/lib/pusher.ts`                     | connecting + auth from the browser       |
+| `frontend/src/hooks/usePusherEvent.ts`           | the React hook used on every page        |
+| `frontend/src/components/NotificationBell.tsx`   | live notifications + toast popup         |
+| `frontend/src/app/(app)/dashboard/page.tsx`      | live activity feed + live graphs         |
+
+Events: `order-created`, `order-updated`, `stock-updated`, `payment-received` (company channel), `new-notification` (user channel).
+
+## Backend structure (every module looks the same)
+
+```
+src/products/
+├── entities/product.entity.ts   database table
+├── dto/createProduct.dto.ts     what the request body must look like (validation)
+├── products.service.ts          business logic + database queries
+├── products.controller.ts       routes (@Get, @Post ...) + @Roles
+└── products.module.ts           connects them
+```
+
+Important ideas:
+- **Every query filters by `tenantId`** (from the JWT) → one company never sees another company's data.
+- **`InventoryService.changeStock()`** is the only place stock changes. It always writes a `stock_movements` row.
+- **Transactions**: an order, its stock and the customer balance are saved together. If one step fails, nothing is saved.
+- Responses always look like `{ statusCode, message, data }`. Errors look like `{ statusCode, error, message }`.
+
+## Migrations (for production)
+
+`DB_SYNC=true` is for learning. For production set `DB_SYNC=false` and use:
+
+```bash
+npm run migration:generate -- src/database/migrations/Init
+npm run migration:run
+```
