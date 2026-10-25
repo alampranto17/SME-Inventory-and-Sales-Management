@@ -4,9 +4,6 @@
 SME/
 ├── backend/    NestJS + PostgreSQL (TypeORM) API  -> http://localhost:3000/api/v1
 ├── frontend/   Next.js + Tailwind + Pusher         -> http://localhost:3001
-└── docs/
-    ├── PROJECT_GUIDE.md  full blueprint + learning path + how Pusher works (start here to LEARN)
-    └── API_MAP.md        every endpoint → backend file + frontend file (start here to CHANGE code)
 ```
 
 ## 1. Run the backend
